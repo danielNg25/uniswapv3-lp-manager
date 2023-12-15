@@ -73,9 +73,13 @@
         "typescript": "^5.1.6"
     },
     "dependencies": {
+        "@cryptoalgebra/periphery": "^2.0.1",
         "@openzeppelin/contracts": "4.9.2",
         "@openzeppelin/contracts-upgradeable": "4.9.2",
-        "@openzeppelin/hardhat-upgrades": "^2.0.1"
+        "@openzeppelin/hardhat-upgrades": "^2.0.1",
+        "@uniswap/v3-core": "^1.0.1",
+        "@uniswap/v3-periphery": "^1.4.4",
+        "solmate": "^6.2.0"
     },
     "husky": {
         "hooks": {
