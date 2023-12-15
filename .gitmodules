@@ -6,3 +6,6 @@
 	path = v3-periphery
 	url = https://github.com/Uniswap/v3-periphery.git
 	branch = 0.8
+[submodule "wido-contracts"]
+	path = wido-contracts
+	url = https://github.com/widolabs/wido-contracts
