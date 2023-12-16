@@ -9,6 +9,7 @@ import "../wido-contracts/contracts/core/zapper/WidoZapperUniswapV3.sol";
 import "../v3-core/contracts/libraries/SqrtPriceMath.sol";
 import "./SimpleNFTVault.sol";
 import "./interfaces/IWETH.sol";
+import "./libraries/TickConversion.sol";
 
 error EIncompatibleAddresses();
 error EWrongMSGValue();
@@ -79,10 +80,10 @@ contract LiquidityManager is
 
         (address wETH, ) = _tokens(_WETH_GMX_Pool);
 
-        (uint160 currentSqrtPriceX96, , , , , , ) = _WETH_GMX_Pool.slot0();
+        (, int24 currentTick, , , , , ) = _WETH_GMX_Pool.slot0();
 
-        (int24 lowerTick, int24 upperTick) = _getTickRangeFromSqrtPrice(
-            currentSqrtPriceX96
+        (int24 lowerTick, int24 upperTick) = _getTickRangeToAddLiquidity(
+            currentTick
         );
 
         IWETH(wETH).deposit{value: amountEth}();
@@ -303,16 +304,10 @@ contract LiquidityManager is
         }
     }
 
-    function _getTickRangeFromSqrtPrice(
-        uint160 sqrtPriceX96
-    ) internal pure returns (int24 tickLower, int24 tickUpper) {
-        // Get the tick range from the sqrtPriceX96
-        uint160 lowerPrice = uint160((sqrtPriceX96 * 948683) / 1000000); // sqrt(0.9) ~= 0.948683
-        uint160 higherPrice = uint160((sqrtPriceX96 * 105409) / 100000); // sqrt(1.1) ~= 1.05409
-
-        // Get the tick range from the price
-        tickLower = TickMath.getTickAtSqrtRatio(lowerPrice);
-        tickUpper = TickMath.getTickAtSqrtRatio(higherPrice);
+    function _getTickRangeToAddLiquidity(
+        int24 currentTick
+    ) internal pure returns (int24 lowerTick, int24 upperTick) {
+        (lowerTick, upperTick) = TickConversion.getTickBound(currentTick);
     }
 
     function _tokens(
