@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../wido-contracts/contracts/core/zapper/WidoZapperUniswapV3.sol";
+import "../v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol";
 import "../v3-core/contracts/libraries/SqrtPriceMath.sol";
 import "./SimpleNFTVault.sol";
 import "./interfaces/IWETH.sol";
@@ -48,8 +49,10 @@ contract LiquidityManager is
 
     constructor(address _swapRouter, address _positionManager, address _pool) {
         if (
-            IUniswapV3Pool(_pool).factory() ==
-            INonfungiblePositionManager(_positionManager).factory()
+            IUniswapV3Pool(_pool).factory() !=
+            INonfungiblePositionManager(_positionManager).factory() &&
+            IUniswapV3Pool(_pool).factory() !=
+            IPeripheryImmutableState(_swapRouter).factory()
         ) {
             revert EIncompatibleAddresses();
         }
@@ -71,7 +74,7 @@ contract LiquidityManager is
         uint256 amountEth,
         uint256 minLiquidity
     ) external payable nonReentrant whenNotPaused {
-        if (msg.value == amountEth) {
+        if (msg.value != amountEth) {
             revert EWrongMSGValue();
         }
 

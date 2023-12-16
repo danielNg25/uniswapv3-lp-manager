@@ -19,6 +19,9 @@ const config: HardhatUserConfig = {
     defaultNetwork: "hardhat",
     networks: {
         hardhat: {
+            forking: {
+                url: "https://arbitrum.llamarpc.com",
+            },
             accounts: { count: 100 },
         },
         sepolia: {
