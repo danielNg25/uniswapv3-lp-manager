@@ -20,40 +20,9 @@ const config: HardhatUserConfig = {
     networks: {
         hardhat: {
             forking: {
-                url: "https://arbitrum.llamarpc.com",
+                url: "https://arbitrum.llamarpc.com	",
             },
             accounts: { count: 100 },
-        },
-        sepolia: {
-            url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
-            accounts: [`${process.env.PRIVATE_KEY}`],
-        },
-        goerli: {
-            url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
-            accounts: [`${process.env.PRIVATE_KEY}`],
-        },
-        mainnet: {
-            url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-            accounts: [`${process.env.PRIVATE_KEY}`],
-        },
-        mumbai: {
-            url: `https://matic-mumbai.chainstacklabs.com/`,
-            accounts: [`${process.env.PRIVATE_KEY}`],
-        },
-        bsctestnet: {
-            url: `https://data-seed-prebsc-1-s1.binance.org:8545/`,
-            accounts: [`${process.env.PRIVATE_KEY}`],
-        },
-    },
-    etherscan: {
-        apiKey: {
-            goerli: `${process.env.ETHERSCAN_KEY}`,
-            sepolia: `${process.env.ETHERSCAN_KEY}`,
-            bscTestnet: `${process.env.BSCSCAN_KEY}`,
-            polygonMumbai: `${process.env.POLYGONSCAN_KEY}`,
-            mainnet: `${process.env.ETHERSCAN_KEY}`,
-            bsctestnet: `${process.env.BSCSCAN_KEY}`,
-            polygonMainnet: `${process.env.POLYGONSCAN_KEY}`,
         },
     },
     solidity: {
@@ -99,7 +68,7 @@ const config: HardhatUserConfig = {
     gasReporter: {
         currency: "ETH",
         gasPrice: 10,
-        enabled: process.env.REPORT_GAS ? true : false,
+        enabled: true,
         excludeContracts: [],
         src: "./contracts",
     },

@@ -2,7 +2,7 @@
 
 Decision explaination: _The requirements seem a bit unclear and confused for me, so I try to solve the problem based on my understand. I'll explain what I thought for each requirement and how I deal with them below._
 
-**Since 2 days is a bit too short for me for both coding and testing, the security and gas optimization factor in these contracts are ignored**
+Note #1: **Since 2 days is a bit too short for me for both coding and testing, the security and gas optimization factor in these contracts are ignored**
 
 ## First requirement
 
@@ -91,3 +91,19 @@ I don't really get what is `LP Share` in Uniswap V3 so I decided to return 2 val
 -   `feeReceivingShare`: position's active liquidity / pool's active liquidity
 
 Both value are multiply by 1e18
+
+## Testing
+
+Note #2: **I haven't manage to make my contract works yet. It failed at the add liquidity step (when calling mint at the pool contract)**
+
+For forking Arbitrum One and running test on the fork mainnet, run:
+
+```ssh
+yarn hardhat test
+```
+
+With trace:
+
+```ssh
+yarn hardhat test --trace
+```
