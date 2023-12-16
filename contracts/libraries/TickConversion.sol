@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 library TickConversion {
     int24 internal constant UPPER_DISTANCE = 953; // 1.0001 ^ 953 ~= 1.1
-    int24 internal constant LOWER_DISTANCE = -1053; // 1.0001 ^ -60 ~= 0.94
+    int24 internal constant LOWER_DISTANCE = -1053; // 1.0001 ^ -1053 ~= 0.94
 
     /// @dev The minimum tick that may be passed to #getSqrtRatioAtTick computed from log base 1.0001 of 2**-128
     int24 internal constant MIN_TICK = -887272;
