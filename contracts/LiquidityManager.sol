@@ -44,8 +44,12 @@ contract LiquidityManager is
         address indexed user,
         uint256 tokenId,
         uint256 amount0,
-        uint256 amount1
+        uint256 amount1,
+        uint256 fee0,
+        uint256 fee1
     );
+
+    event EmmergencyWithdraw(address caller, address treasury);
 
     constructor(address _swapRouter, address _positionManager, address _pool) {
         if (
@@ -125,36 +129,20 @@ contract LiquidityManager is
         // Remove liquidity from the pool
         nonfungiblePositionVault.transfer(address(this), tokenId);
 
-        (, , , , , , , uint128 liquidity, , , , ) = nonfungiblePositionManager
-            .positions(tokenId);
-
-        (uint256 amount0, uint256 amount1) = nonfungiblePositionManager
-            .decreaseLiquidity(
-                INonfungiblePositionManager.DecreaseLiquidityParams({
-                    tokenId: tokenId,
-                    liquidity: liquidity,
-                    amount0Min: 0,
-                    amount1Min: 0,
-                    deadline: block.timestamp
-                })
-            );
-        (uint256 amountFee0, uint256 amountFee1) = nonfungiblePositionManager
-            .collect(
-                INonfungiblePositionManager.CollectParams({
-                    tokenId: tokenId,
-                    recipient: msg.sender,
-                    amount0Max: type(uint128).max,
-                    amount1Max: type(uint128).max
-                })
-            );
-
-        nonfungiblePositionManager.burn(tokenId);
+        (
+            uint256 amount0,
+            uint256 amount1,
+            uint256 amountFee0,
+            uint256 amountFee1
+        ) = _removeLiquidity(nonfungiblePositionManager, tokenId);
 
         emit Withdraw(
             msg.sender,
             tokenId,
-            amount0 + amountFee0,
-            amount1 + amountFee1
+            amount0,
+            amount1,
+            amountFee0,
+            amountFee1
         );
     }
 
@@ -168,6 +156,7 @@ contract LiquidityManager is
         }
         // Withdraw all LP NFT into the treasury
         nonfungiblePositionVault.transferOwnership(treasury);
+        emit EmmergencyWithdraw(msg.sender, treasury);
     }
 
     /**
@@ -247,6 +236,46 @@ contract LiquidityManager is
 
         // calculate user LP share
         lpShare = FullMath.mulDiv(lpValue, 1e18, poolTVL); // 1e18 = 100%
+    }
+
+    function _removeLiquidity(
+        INonfungiblePositionManager _nonfungiblePositionManager,
+        uint256 tokenId
+    )
+        internal
+        returns (
+            uint256 amount0,
+            uint256 amount1,
+            uint256 amountFee0,
+            uint256 amountFee1
+        )
+    {
+        (, , , , , , , uint128 liquidity, , , , ) = _nonfungiblePositionManager
+            .positions(tokenId);
+
+        // Decrease liquidity
+        (amount0, amount1) = _nonfungiblePositionManager.decreaseLiquidity(
+            INonfungiblePositionManager.DecreaseLiquidityParams({
+                tokenId: tokenId,
+                liquidity: liquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            })
+        );
+
+        // Collect fee
+        (amountFee0, amountFee1) = _nonfungiblePositionManager.collect(
+            INonfungiblePositionManager.CollectParams({
+                tokenId: tokenId,
+                recipient: msg.sender,
+                amount0Max: type(uint128).max,
+                amount1Max: type(uint128).max
+            })
+        );
+
+        // Burn NFT
+        _nonfungiblePositionManager.burn(tokenId);
     }
 
     function _getLiquidityValue(
