@@ -1,148 +1,93 @@
-# Solidity Template with Hardhat using EthersV6 [![Hardhat][hardhat-badge]][hardhat] [![License: MIT][license-badge]]
+# wETH - GMX Uniswap V3 Position Manager
 
-:warning: This template uses Ethers V6. If you're familiar with Ethers V5, see migration guide here:
+Decision explaination: _The requirements seem a bit unclear and confused for me, so I try to solve the problem based on my understand. I'll explain what I thought for each requirement and how I deal with them below._
 
--   [Hardhat Migration Guide](https://github.com/NomicFoundation/hardhat/releases/tag/%40nomicfoundation%2Fhardhat-toolbox%403.0.0)
--   [Ethers V6 Migration Guide](https://docs.ethers.org/v6/migrating/)
+**Since 2 days is a bit too short for me for both coding and testing, the security and gas optimization factor in these contracts are ignored**
 
-[hardhat]: https://hardhat.org/
-[hardhat-badge]: https://img.shields.io/badge/Built%20with-Hardhat-FFDB1C.svg
-[license]: https://opensource.org/licenses/MIT
-[license-badge]: https://img.shields.io/badge/License-MIT-blue.svg
+## First requirement
 
-A Hardhat-based template for developing smart contract in Solidity
+> User can deposit ETH into a contract and add liquidity with a range +-10% at the current
+> price to GMX/ETH Uniswap Pool V3 (Store info about the amount LP NFT of the user)
 
--   [Hardhat](https://github.com/nomiclabs/hardhat): compile, run and test smart contracts
--   [TypeChain](https://github.com/ethereum-ts/TypeChain): generate TypeScript bindings for smart contracts
--   [Ethers](https://github.com/ethers-io/ethers.js/): renowned Ethereum library and wallet implementation
--   [Solhint](https://github.com/protofire/solhint): solidity linter
--   [Eslint](https://github.com/eslint/eslint): code linter
--   [Solcover](https://github.com/sc-forks/solidity-coverage): code coverage
--   [Prettier Plugin Solidity](https://github.com/prettier-solidity/prettier-plugin-solidity): code formatter
--   [Husky](https://github.com/typicode/husky): Git hooks
+### The pool is pool of wETH and GMX and user deposit native ETH:
 
-## Getting Started
+-   First, Wrap ETH to get wETH
+-   Next, `Zap in` wETH into the pool (when we want to add liquidity to a pool but we only have token from oneside, `Zap in` is a process that do a swap to get other token with an optimal amount and then add liquidity to the pool)
 
-Click the [`Use this template`](https://github.com/ndtr2000/solidity-hardhat-template/generate) button at the top of the page to
-create a new repository with this repo as the initial state.
+In the `Zap in` step, we can do the swap on Balancer then add liquidity to Uniswap pool to avoid price impact. But I'm not so familiar with Balancer, so I decide to swap on Uniswap pool instead and I was inspired by this [Wido](https://github.com/widolabs/wido-contracts) project.
 
-## Features
+### Add liquidity with a range +-10% at the current price
 
-This template builds upon the frameworks and libraries mentioned above, so for details about their specific features,
-please consult their respective documentations.
+To make it simple, I decided to handle this +-10% range by tick to avoid dealing with Q64.96 number (the sqrtPriceX96).
+Since:
 
-### Sensible Defaults
+$$
+Price = 1.0001^{tick}
+$$
 
-This template comes with sensible default configurations in the following files:
+I took 2 approximate numbers: 953 and -1053 which:
 
-```text
-├── .commitlintrc.yml
-├── .editorconfig
-├── .eslintignore
-├── .eslintrc.yml
-├── .gitignore
-├── .prettierignore
-├── .prettierrc.yml
-├── .solcover.js
-├── .solhintignore
-├── .solhint.json
-├── .yarnrc.yml
-└── hardhat.config.ts
+$$
+1.0001^{953} ~= 1.1
+$$
+
+$$
+1.0001^{-1053} ~= 0.9
+$$
+
+We can get the satisfy tick range easily:
+
+$$
+upperTick = currentTick + 953
+$$
+
+$$
+lowerTick = currentTick + (-1053)
+$$
+
+## Second requirement
+
+> User can withdraw exactly LP user has a deposit
+> This process is simple and straight forward
+
+-   Decrease liquidity of user's position
+-   Collect all fee at that position
+-   Burn the NFT
+
+## Third requirement
+
+> Emergency withdrawal all LP NFT into the treasury (only the owner of the smart contract
+> can run this function)
+
+Transfer a large amount of NFTs cost a significant amount of gas, I choose an other solution to not transfer all the NFT, I transfer the owner of NFT owner: I created a simple vault to hold all the NFT, only owner of the vault can transfer NFT out. When emergency withdraw is called, we simply transfer the owner of the vault to the treasury.
+
+## Last requirement
+
+> User can read deposit data ( deposit value, % lp share in pool)
+
+```solidity
+function getDepositData(
+    uint256 tokenId
+)
+    external
+    view
+    returns (
+        uint256 amount0,
+        uint256 amount1,
+        uint256 lpShare,
+        uint256 feeReceivingShare
+    );
 ```
 
-## Usage
+### Deposit value
 
-### Pre Requisites
+I wonder if this `deposit value` is the eth value when user deposit or the worth value of wETH and GMX user gets if they remove that position at the current time. I decided to get the worth value of the position (the `amount0` and `amount1`).
 
-Before being able to run any command, you need to create a `.env` file and set a BIP-39 compatible mnemonic as an
-environment variable. You can follow the example in `.env.example`. If you don't already have a mnemonic, you can use
-this [website](https://iancoleman.io/bip39/) to generate one.
+### % LP Share
 
-Then, proceed with installing dependencies:
+I don't really get what is `LP Share` in Uniswap V3 so I decided to return 2 value
 
-```sh
-$ yarn install
-```
+-   `lpShare`: I calculated the TVL of the pool base on the balance of both token and the price in the pool, and the value of position's liquidity => I can get the % share of that position (This value is not really accurate since the collected fee is not count as lp in Uniswap V3)
+-   `feeReceivingShare`: position's active liquidity / pool's active liquidity
 
-### Compile
-
-Compile the smart contracts with Hardhat:
-
-```sh
-$ yarn compile
-```
-
-### TypeChain
-
-Compile the smart contracts and generate TypeChain bindings:
-
-```sh
-$ yarn typechain
-```
-
-### Test
-
-Run the tests with Hardhat:
-
-```sh
-$ yarn test
-```
-
-### Lint Solidity
-
-Lint the Solidity code:
-
-```sh
-$ yarn lint:sol
-```
-
-### Lint TypeScript
-
-Lint the TypeScript code:
-
-```sh
-$ yarn lint:ts
-```
-
-### Coverage
-
-Generate the code coverage report:
-
-```sh
-$ yarn coverage
-```
-
-### Report Gas
-
-See the gas usage per unit test and average gas per method call:
-
-```sh
-$ REPORT_GAS=true yarn test
-```
-
-### Clean
-
-Delete the smart contract artifacts, the coverage reports and the Hardhat cache:
-
-```sh
-$ yarn clean
-```
-
-### Deploy
-
-Deploy the contracts to Hardhat Network:
-
-```sh
-$ yarn deploy --greeting "Bonjour, le monde!"
-```
-
-### Fix husky not executable
-
-```sh
-chmod ug+x .husky/*
-chmod ug+x .git/hooks/*
-```
-
-## License
-
-[MIT](./LICENSE.md) © Nguyễn Đình Trường
+Both value are multiply by 1e18
